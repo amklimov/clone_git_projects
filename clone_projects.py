@@ -4,13 +4,19 @@ import subprocess
 import logging
 from concurrent.futures import ThreadPoolExecutor
 import re
+from urllib3.exceptions import InsecureRequestWarning
+import urllib3
+
+# Отключение предупреждений об отсутствии проверки сертификата
+urllib3.disable_warnings(InsecureRequestWarning)
+
 
 # Настройки
-GITLAB_URL = "https://gitlab.com"  # URL вашего GitLab
-GROUP_ID = "ID_Group"                        # ID вашей группы Git, в которой лежат все проекты и репозитории
-ACCESS_TOKEN = "My-Token"                  # Ваш личный токен доступа
+GITLAB_URL = "https://gitlab.example.com"  # URL вашего GitLab
+GROUP_ID = "40"                           # ID или имя вашей группы
+ACCESS_TOKEN = "TOKEN"                  # Ваш личный токен доступа
 TIMEOUT = 60                               # Таймаут для HTTP-запросов
-CLONE_TIMEOUT = 1800                        # Таймаут для клонирования (увеличен до 30 минут)
+CLONE_TIMEOUT = 1800                        # Таймаут для клонирования (увеличен до 10 минут)
 MAX_WORKERS = 6                            # Количество потоков для параллельного клонирования
 
 
@@ -66,7 +72,8 @@ def get_projects(group_id, access_token, path):
                 f"{GITLAB_URL}/api/v4/groups/{group_id}/projects",
                 headers={"PRIVATE-TOKEN": access_token},
                 params={"per_page": 100, "page": page},
-                timeout=TIMEOUT
+                timeout=TIMEOUT,
+                verify=False  # Игнорировать проверку SSL-сертификата для подгрупп
             )
             # Логирование статуса и тела ответа для отладки
             logger.info(f"Получен ответ: HTTP {response.status_code}")
@@ -97,7 +104,8 @@ def get_projects(group_id, access_token, path):
         subgroups_response = requests.get(
             f"{GITLAB_URL}/api/v4/groups/{group_id}/subgroups",
             headers={"PRIVATE-TOKEN": access_token},
-            timeout=TIMEOUT
+            timeout=TIMEOUT,
+            verify=False  # Игнорировать проверку SSL-сертификата для подгрупп
         )
         logger.info(f"Получен ответ для подгрупп: HTTP {subgroups_response.status_code}")
         logger.info(f"Тело ответа для подгрупп: {subgroups_response.text}")
@@ -126,4 +134,3 @@ if not os.path.exists(root_path):
 
 # Получение и клонирование всех проектов
 get_projects(GROUP_ID, ACCESS_TOKEN, root_path)
-
